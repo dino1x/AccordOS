@@ -33,10 +33,10 @@ export function ScheduleStage() {
         <div>
           <div className="eyebrow">/03 <b>delivery</b> webhooks + bryntum</div>
           <h1>A schedule that <span className="hl">waits on money</span></h1>
-          <p>PayPal states are hard dependencies. A task cannot start until its gate clears: an invoice paid, a hold authorized, funds captured at dispatch. When a webhook or carrier event arrives, the operations agent reflows the plan.</p>
+          <p>Tasks wait on PayPal: an invoice paid, a hold approved, funds captured. Every webhook or carrier event reflows the plan.</p>
         </div>
         <div className="row">
-          <Btn busy={busy === "wh"} disabled={!nextInvoice} onClick={() => run("wh", webhookPaid, "Webhook INVOICING.INVOICE.PAID processed")} title="Posts a PayPal-shaped webhook to /api/webhooks/paypal">
+          <Btn busy={busy === "wh"} disabled={!nextInvoice} onClick={() => run("wh", webhookPaid, "Webhook INVOICING.INVOICE.PAID processed")} title="Sends an INVOICING.INVOICE.PAID webhook">
             Webhook: invoice paid
           </Btn>
           <Btn busy={busy === "delay"} disabled={!tasks.length} onClick={() => run("delay", () => post("/schedule/delay", { days: 3 }), "Carrier delay applied")}>
@@ -56,7 +56,7 @@ export function ScheduleStage() {
             loading={loading}
             error={error}
             onRetry={reload}
-            empty={!loading && !tasks.length ? { text: "Plan a brief to generate the delivery schedule." } : false}
+           empty={!loading && !tasks.length ? { text: "Plan a brief to build the schedule." } : false}
             flush
             actions={
               <div className="legend hide-sm">
@@ -81,9 +81,9 @@ export function ScheduleStage() {
         </div>
 
         <div className="span-12">
-          <Panel title="Bryntum Scheduler" meta="Payment-gated crew and carrier bookings. Red bookings wait on a PayPal gate. Hover a booking for its gate." loading={loading} error={error} onRetry={reload} empty={!loading && !tasks.length ? { text: "No bookings yet." } : false} flush>
+          <Panel title="Bryntum Scheduler" meta="Red bookings wait on a payment. Hover for details." loading={loading} error={error} onRetry={reload} empty={!loading && !tasks.length ? { text: "No bookings yet." } : false} flush>
             {tasks.length > 0 && (
-              <ErrorBoundary fallback={(e, retry) => <div className="error" role="alert"><p>Bryntum Scheduler could not render ({e.message}). The dependency Gantt above shows the same plan.</p><Btn onClick={retry}>Retry</Btn></div>}>
+              <ErrorBoundary fallback={(e, retry) => <div className="error" role="alert"><p>Bryntum could not load ({e.message}). The Gantt above shows the same plan.</p><Btn onClick={retry}>Retry</Btn></div>}>
                 <Suspense fallback={<div style={{ padding: 16 }}><Skeleton lines={6} /></div>}>
                   <BryntumSchedulerView tasks={tasks} dayZero={state!.dayZero} moved={moved} />
                 </Suspense>
@@ -93,7 +93,7 @@ export function ScheduleStage() {
         </div>
 
         <div className="span-12">
-          <Panel title="Operations agent log" meta="Reflows caused by PayPal and carrier events" loading={loading} error={error} onRetry={reload} empty={!loading && !state?.events.length ? { text: "No events yet. Pay a tranche, approve holds or trigger a webhook to see the plan reflow." } : false}>
+          <Panel title="Operations agent log" meta="Why the plan moved" loading={loading} error={error} onRetry={reload} empty={!loading && !state?.events.length ? { text: "Pay a tranche or send a webhook to see the plan reflow." } : false}>
             <div className="events">
               <List
                 items={state?.events ?? []}

@@ -37,7 +37,12 @@ function num(v: unknown): number {
   return NaN;
 }
 
-async function channel3Search(li: LineItem): Promise<Sku[]> {
+// Channel3 usually answers in 2-6 s but occasionally takes longer.
+const TIMEOUT_MS = 12_000;
+// Last good live result per query, reused if Channel3 is slow, so a reset never drops to fixtures.
+const lastGood = new Map<string, Sku[]>();
+
+async function channel3Search(li: LineItem, attempt: number): Promise<Sku[]> {
   const started = performance.now();
   const path = "/v1/search";
   const body = { query: li.query, limit: 6 };
@@ -47,7 +52,7 @@ async function channel3Search(li: LineItem): Promise<Sku[]> {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": config.channel3.key },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     status = res.status;
     const data: any = await res.json();
@@ -69,22 +74,30 @@ async function channel3Search(li: LineItem): Promise<Sku[]> {
         };
       })
       .filter((s) => Number.isFinite(s.price) && s.price > 0);
-    record({ origin: "channel3", method: "POST", path, status, ms: Math.round(performance.now() - started), request: body, response: scrub(skus.slice(0, 3)) });
+    record({ origin: "channel3", method: "POST", path: attempt > 1 ? `${path} (retry)` : path, status, ms: Math.round(performance.now() - started), request: body, response: scrub(skus.slice(0, 3)) });
     if (!res.ok || skus.length === 0) throw new Error(`Channel3 returned ${skus.length} usable products`);
     return skus;
   } catch (err) {
-    record({ origin: "channel3", method: "POST", path, status, ms: Math.round(performance.now() - started), request: body, error: err instanceof Error ? err.message : String(err) });
+    record({ origin: "channel3", method: "POST", path: attempt > 1 ? `${path} (retry)` : path, status, ms: Math.round(performance.now() - started), request: body, error: err instanceof Error ? err.message : String(err) });
     throw err;
   }
 }
 
 export async function searchSkus(li: LineItem): Promise<{ skus: Sku[]; source: Sku["source"]; error?: string }> {
   if (config.channel3.key) {
-    try {
-      return { skus: await channel3Search(li), source: "channel3" };
-    } catch (err) {
-      return { skus: fixtureSearch(li), source: "fixture", error: err instanceof Error ? err.message : String(err) };
+    let error = "";
+    for (const attempt of [1, 2]) {
+      try {
+        const skus = await channel3Search(li, attempt);
+        lastGood.set(li.query, skus);
+        return { skus, source: "channel3" };
+      } catch (err) {
+        error = err instanceof Error ? err.message : String(err);
+      }
     }
+    const cached = lastGood.get(li.query);
+    if (cached) return { skus: cached, source: "channel3", error: `${error}; reused the last live Channel3 results` };
+    return { skus: fixtureSearch(li), source: "fixture", error };
   }
   return { skus: fixtureSearch(li), source: "fixture" };
 }

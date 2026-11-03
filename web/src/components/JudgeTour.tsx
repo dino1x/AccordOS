@@ -1,6 +1,5 @@
-// A one-click guided walkthrough for judges: five beats, one per stage, each
-// doing one real action (PayPal, schedule reflow, payouts, red-team) and
-// narrating it in a banner under the status bar.
+// One-click guided tour: five beats, one per stage, each doing one real action
+// (PayPal, schedule reflow, payouts, red-team) and narrating it in a floating dock.
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
 import type { AppState, FirewallVerdict } from "../../../server/src/types";
 import { api, post } from "../lib/api";
@@ -27,18 +26,18 @@ const STEPS: Step[] = [
     stage: "tranche",
     title: "Brief to funded tranches",
     run: async (s) => {
-      const parsed = `Brief parsed by ${s.brief?.source === "claude" ? "Claude" : "rules"}, budget split exactly by a DP allocator, and each milestone issued as a PayPal Invoicing v2 invoice with a scannable QR code.`;
+      const parsed = `${s.brief?.source === "claude" ? "Claude" : "Rules"} parsed the brief, the budget was split, and each milestone became a PayPal invoice with a QR code.`;
       const t2 = s.tranches[1];
       if (t2?.status === "sent") {
         await post(`/tranches/${t2.id}/pay`);
-        return `${parsed} "${t2.name}" just settled at its early-pay amount, so its schedule gate clears.`;
+        return `${parsed} "${t2.name}" just settled early, clearing its schedule gate.`;
       }
       return parsed;
     },
   },
   {
     stage: "bakeoff",
-    title: "Channel3 sourcing and reverse auction",
+    title: "Sourcing and reverse auction",
     run: async (s) => {
       const waiting = s.holds.find((h) => h.status === "created");
       if (waiting) await post(`/holds/${waiting.id}/authorize`);
@@ -46,9 +45,9 @@ const STEPS: Step[] = [
       const held = now.holds.find((h) => h.status === "authorized");
       if (held) {
         await post(`/holds/${held.id}/capture`);
-        return `Three vendor agents bid and the policy vault passed the winner. A ${money(held.amount)} Orders v2 hold was authorized${held.fastForwarded ? " (fast-forwarded, labelled simulated)" : ""} and captured at dispatch, with shipment tracking attached.`;
+        return `Vendors bid, the vault passed the winner, and a ${money(held.amount)} hold was authorized${held.fastForwarded ? " (simulated approval)" : ""} and captured with tracking.`;
       }
-      return "Each line item is sourced through Channel3, then three vendor agents bid it down. Winners become Orders v2 AUTHORIZE holds only after the policy vault passes them.";
+      return "Channel3 sources each item, three vendors bid it down, and winners become PayPal holds.";
     },
   },
   {
@@ -56,7 +55,7 @@ const STEPS: Step[] = [
     title: "Payment-gated schedule reflow",
     run: async () => {
       await post("/schedule/delay", { days: 3 });
-      return "The carrier reported a 3-day delay. Watch the dependency Gantt and the Bryntum Scheduler shift every downstream booking, and the operations agent explain what moved.";
+      return "A 3-day carrier delay just landed. Every downstream task shifts, and the agent explains why.";
     },
   },
   {
@@ -66,24 +65,24 @@ const STEPS: Step[] = [
       if (s.holds.some((h) => h.status === "captured")) {
         try {
           await post("/payouts");
-          return "Captured funds passed the payment firewall and went out as a PayPal Payouts v1 batch. Every dollar is traced in the AG Grid ledger and the AG Studio dashboard.";
+          return "Captured funds cleared the firewall and went out as a PayPal Payouts batch, traced in the ledger.";
         } catch {
           // nothing left to disburse: fall through to the description
         }
       }
-      return "Every dollar from client to escrow to vendor, with the PayPal call that moved it, in the AG Grid ledger and the AG Studio dashboard.";
+      return "Every dollar from client to vendor, tied to the PayPal call that moved it.";
     },
   },
   {
     stage: "redteam",
-    title: "Prove it: red-team the firewall",
+    title: "Red-team the firewall",
     run: async () => {
       const r = await post<RedTeamResult>("/redteam/run", {});
       window.dispatchEvent(new CustomEvent(REDTEAM_RESULT_EVENT, { detail: r }));
       window.dispatchEvent(new Event(OPEN_DRAWER_EVENT));
       const attacks = r.verdicts.filter((v) => v.attackId !== "control");
       const control = r.verdicts.find((v) => v.attackId === "control");
-      return `${attacks.filter((v) => v.blocked).length}/${attacks.length} attacks blocked in ${r.totalMicros}us with 0 PayPal calls, and the clean control ${control?.blocked ? "was blocked" : "passed"}. The drawer below lists every MCP, APIMatic, REST, Claude and Channel3 call.`;
+      return `${attacks.filter((v) => v.blocked).length}/${attacks.length} attacks blocked in ${r.totalMicros}us with 0 PayPal calls; the clean control ${control?.blocked ? "was blocked" : "passed"}. Every API call is in the drawer below.`;
     },
   },
 ];
@@ -138,7 +137,7 @@ export function TourProvider({ setStage, children }: { setStage: (s: StageId) =>
       }
       if (alive()) {
         setRunning(false);
-        toast({ kind: "ok", text: "Judge tour complete. Every stage stays live: click anything to explore." });
+        toast({ kind: "ok", text: "Tour complete. Everything stays live to explore." });
       }
     })();
   }, [setStage, toast]);

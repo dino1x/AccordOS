@@ -48,7 +48,7 @@ export function PayPalApprove(props: { label: string; orderId?: string; createOr
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const live = state?.mode === "live";
-  // Settles the open popup session when the judge cancels or it times out.
+  // Settles the open popup session when the user cancels or it times out.
   const abort = useRef<((reason: Error) => void) | null>(null);
 
   async function start() {

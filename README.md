@@ -1,4 +1,4 @@
-# AccordOS
+<h1><picture><source media="(prefers-color-scheme: dark)" srcset="web/public/brand/accordos-wordmark-dark.svg"><img src="web/public/brand/accordos-wordmark.svg" alt="AccordOS" width="260"></picture></h1>
 
 **The commercial execution desk that runs a client project on PayPal: invoices in, supplier holds out, the schedule moving with every payment, and a firewall in front of every payout.**
 
@@ -199,7 +199,7 @@ Under it, `web/src/components/StudioCanvas.tsx` embeds AG Studio (`ag-studio` an
 - The data is rebuilt on every state version, so reports update as PayPal events land.
 - It opens on a pre-built report, `web/src/components/studioReport.ts`, so the canvas is never empty. The report has KPI tiles for ledger volume, invoiced tranches, authorized holds and firewall-cleared payouts, a bar chart of dollar volume by money state, a donut of awarded holds by vendor, and a grid of milestone tranches with their early-pay amounts.
 - The Studio Agent Framework is wired with `createAiHarness(api, { adapter, promptStarters })`, through the `ai` prop of `<AgStudio>`.
-- **With an Anthropic key, Studio's own agents run on Claude.** `createStudioAdapter` sends each turn to `POST /api/studio/turn`. `server/src/engine/studioTurn.ts` translates Studio's conversation items, tools and JSON response formats into Anthropic messages, `tool_use` and `tool_result` blocks, and translates the reply back into AG-UI events. Studio's orchestrator can therefore call `view_page` and `delegate_to`, and hand work to Studio's widget-building agent, which can build any chart a judge asks for. Each turn appears in telemetry as `CLAUDE /v1/messages (ag_studio)`. The endpoint is rate-limited to 60 turns per IP per 10 minutes. If the call fails or no key is set, the turn falls back to the zero-key adapter below.
+- **With an Anthropic key, Studio's own agents run on Claude.** `createStudioAdapter` sends each turn to `POST /api/studio/turn`. `server/src/engine/studioTurn.ts` translates Studio's conversation items, tools and JSON response formats into Anthropic messages, `tool_use` and `tool_result` blocks, and translates the reply back into AG-UI events. Studio's orchestrator can therefore call `view_page` and `delegate_to`, and hand work to Studio's widget-building agent, which can build any chart a user asks for. Each turn appears in telemetry as `CLAUDE /v1/messages (ag_studio)`. The endpoint is rate-limited to 60 turns per IP per 10 minutes. If the call fails or no key is set, the turn falls back to the zero-key adapter below.
 - The zero-key `AgLlmAdapter`, in `web/src/components/studioAi.ts`, streams AG-UI events:
   - On the first turn it calls Studio's own tools: `rename_thread`, and the read-only `view_page`.
   - On the next turn it answers from live AccordOS state and the `view_page` result, as streamed markdown.
@@ -232,6 +232,7 @@ AccordOS ships with both [`vercel.json`](vercel.json) (`api/index.js` serverless
   - Project state lives in each function instance's memory. Vercel usually keeps one warm instance for low-traffic demos, but if a request lands on a new instance, that instance seeds its own fresh project, so a viewer can briefly see a different state. Use Render for a single shared state during judging.
 - **Render (`render.yaml`):**
   - Deploys a single always-on web service with `/api/health` checks so in-memory state and long-lived SSE streams stay in one process.
+- **Both:** link-preview tags (`og:image`, `og:url`) become absolute at build time from the host's own URL; set `PUBLIC_URL` for a custom domain. The Node server gzips responses, caches fingerprinted bundles for a year, and serves a real 404 page for unknown paths.
 
 ---
 
@@ -302,6 +303,10 @@ The self-test drives the whole desk end to end and asserts:
 - Bryntum's trial package runs an obfuscated `postinstall` script. It is not needed at runtime, and npm's script approval blocks it by default.
 - The dependency Gantt in Stage 03 is a custom React and SVG component. The Bryntum Scheduler sits beside it.
 - The early-payment discount is enforced by AccordOS and stated in the invoice terms. PayPal invoices have no native conditional discount.
+- **Channel3 latency.** Searches usually take 2-6 s but sometimes exceed 10 s. Each search gets 12 s and one retry. If both fail, the item reuses its last live Channel3 results from this server's lifetime. The fixture catalog, labelled `Fixture`, appears only if Channel3 has never answered for that item.
+- **`npm audit`.** The remaining advisories come from `@paypal/agent-toolkit` 1.11.0 (the latest release), not from AccordOS code:
+  - Its LangChain, Vercel AI SDK and OpenAI integrations, and the packages beneath them, are never loaded: AccordOS imports only `@paypal/agent-toolkit/mcp` to read PayPal's tool schemas.
+  - That entry does load mathjs, which `package.json` overrides to the patched 15.2.0. It also loads zod 3 to define its schemas; AccordOS validates its own input with zod 4.
 
 ---
 

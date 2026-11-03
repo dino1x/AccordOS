@@ -7,6 +7,7 @@
     <title>Page not found | AccordOS</title>
     <meta name="description" content="This page does not exist. Return to the AccordOS execution desk." />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono:wght@400&display=swap" rel="stylesheet" />
@@ -17,6 +18,8 @@
       body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 32px 16px; background: var(--bg); color: var(--ink); font: 400 15px/1.55 Geist, -apple-system, system-ui, sans-serif; -webkit-font-smoothing: antialiased;
         background-image: radial-gradient(60% 50% at 15% 0%, rgba(129, 176, 154, 0.22), transparent 70%); }
       main { max-width: 560px; }
+      .brand { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 40px; font-weight: 600; font-size: 19px; letter-spacing: -0.035em; color: var(--ink); text-decoration: none; height: auto; padding: 0; background: none; border: 0; box-shadow: none; }
+      .brand b { font-weight: 600; color: #5f8072; }
       .eyebrow { font: 400 13px "Geist Mono", ui-monospace, monospace; color: var(--muted); }
       h1 { margin: 14px 0 0; font-size: clamp(36px, 7vw, 56px); line-height: 1.02; font-weight: 500; letter-spacing: -0.035em; }
       h1 span { background: linear-gradient(90deg, #4d7c66, #93bba6); -webkit-background-clip: text; background-clip: text; color: transparent; }
@@ -28,6 +31,7 @@
   </head>
   <body>
     <main>
+      <a class="brand" href="/" aria-label="AccordOS home"><img src="/favicon.svg" alt="" width="28" height="28" />Accord<b>OS</b></a>
       <div class="eyebrow">/404 not found</div>
       <h1>No money moves here. <span>The desk is one click away.</span></h1>
       <p>This address does not exist. The AccordOS desk lives at the root, with each stage behind a tab.</p>

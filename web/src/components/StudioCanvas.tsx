@@ -1,7 +1,7 @@
 // AG Studio self-serve analytics canvas bound to live AccordOS data.
-import { AgStudioAiModule, createAiHarness, studioTheme, type AgAiHarnessSetup, type AgDataSourcesDefinition } from "ag-studio";
+import { AgStudioAiModule, createAiHarness, type AgStudioApi, studioTheme, type AgAiHarnessSetup, type AgDataSourcesDefinition } from "ag-studio";
 import { AgStudio, AgStudioProvider } from "ag-studio-react";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { AppState } from "../../../server/src/types";
 import { createStudioAdapter, PROMPT_STARTERS } from "./studioAi";
 import { initialStudioReport } from "./studioReport";
@@ -107,13 +107,17 @@ export function StudioCanvas({ state }: { state: AppState }) {
   const data = useMemo(() => sources(state), [state.version]);
   const live = useRef(state);
   live.current = state;
+  const studio = useRef<AgStudioApi | null>(null);
   // Built once: the harness reads the latest state through the ref on every turn.
   const ai = useMemo<AgAiHarnessSetup>(
     () => ({ api }) => {
+      studio.current = api;
       return createAiHarness(api, { adapter: createStudioAdapter(() => live.current, api), promptStarters: PROMPT_STARTERS });
     },
     [],
   );
+  // A widget whose source was empty at mount keeps showing "No data" until refreshed.
+  useEffect(() => studio.current?.reload(), [data]);
   return (
     <div style={{ height: 720, width: "100%" }}>
       <AgStudioProvider modules={[AgStudioAiModule]}>

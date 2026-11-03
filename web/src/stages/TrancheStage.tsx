@@ -25,7 +25,7 @@ export function TrancheStage() {
         <div>
           <div className="eyebrow">/01 <b>sell side</b> invoicing v2 + JS SDK v6</div>
           <h1>From client brief <span className="hl">to paid tranches</span></h1>
-          <p>Claude reads the client brief, a dynamic-programming allocator splits the budget, and each milestone becomes a PayPal Sandbox invoice with an early-payment rule and a scannable QR.</p>
+          <p>Claude reads the brief, an optimizer splits the budget, and each milestone becomes a PayPal invoice with an early-pay discount and a QR code.</p>
         </div>
       </div>
 
@@ -44,7 +44,7 @@ export function TrancheStage() {
             }
           >
             <label className="label" htmlFor="brief">Contract or project brief</label>
-            <textarea id="brief" value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} placeholder="Paste a client brief with a budget, scope and payment schedule." />
+            <textarea id="brief" value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} placeholder="Paste a brief with budget, scope and payment schedule." />
             <div className="muted" style={{ marginTop: 6, fontSize: 12 }}>{text.length.toLocaleString()} characters. Replanning resets downstream stages.</div>
           </Panel>
         </div>
@@ -52,11 +52,11 @@ export function TrancheStage() {
         <div className="span-7">
           <Panel
             title="Budget allocation"
-            meta={alloc ? `DP over ${alloc.statesExplored.toLocaleString()} states in ${alloc.micros}us, $${alloc.unit} resolution` : undefined}
+            meta={alloc ? `${alloc.statesExplored.toLocaleString()} options in ${alloc.micros}us` : undefined}
             loading={loading}
             error={error}
             onRetry={reload}
-            empty={!loading && !alloc ? { text: "Plan a brief to allocate its budget." } : false}
+           empty={!loading && !alloc ? { text: "Plan a brief to see its budget split." } : false}
           >
             {alloc && brief && (
               <>
@@ -96,11 +96,11 @@ export function TrancheStage() {
         <div className="span-12">
           <Panel
             title="Milestone tranches"
-            meta={brief ? `Services portion ${money(brief.budget - (alloc?.categories.find((c) => c.key === "procurement")?.chosen.cost ?? 0))}. Procurement is funded per award through Orders v2 holds.` : undefined}
+            meta={brief ? `Services ${money(brief.budget - (alloc?.categories.find((c) => c.key === "procurement")?.chosen.cost ?? 0))}. Hardware is paid through holds.` : undefined}
             loading={loading}
             error={error}
             onRetry={reload}
-            empty={!loading && !state?.tranches.length ? { text: "No tranches yet. Plan a brief to generate them." } : false}
+           empty={!loading && !state?.tranches.length ? { text: "Plan a brief to create tranches." } : false}
           >
             <div className="tranches">
               {state?.tranches.map((t) => <TrancheCard key={t.id} t={t} />)}
@@ -155,7 +155,7 @@ function TrancheCard({ t }: { t: Tranche }) {
               createOrder={() => post<{ orderId: string }>(`/tranches/${t.id}/checkout`)}
               onApproved={(orderId) => run("pay", () => post(`/tranches/${t.id}/checkout/${orderId}/capture`), `${t.name} captured and recorded`)}
             />
-            <Btn sm busy={busy === "record"} onClick={() => run("record", () => post(`/tranches/${t.id}/pay`), `${t.name} marked paid`)} title="Records an external payment against the invoice">
+            <Btn sm busy={busy === "record"} onClick={() => run("record", () => post(`/tranches/${t.id}/pay`), `${t.name} marked paid`)} title="Mark paid outside PayPal checkout">
               Record payment
             </Btn>
             <Btn sm kind="ghost" busy={busy === "remind"} onClick={() => run("remind", () => post(`/tranches/${t.id}/remind`), "Reminder sent")}>

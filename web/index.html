@@ -1,13 +1,14 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <script>try{var t=localStorage.getItem("accordos.theme");if(t==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+    <script>try{var t=localStorage.getItem("accordos.theme");if(t==="dark"){document.documentElement.dataset.theme="dark";addEventListener("DOMContentLoaded",function(){document.querySelector('meta[name="theme-color"]').content="#151413"})}}catch(e){}</script>
     <meta charset="UTF-8" />
     <meta name="theme-color" content="#fefcf5" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="AccordOS: an autonomous commercial execution desk on PayPal Sandbox. Tranche invoicing, reverse auctions with Orders v2 holds, a payment-gated schedule, firewall-gated payouts and dispute defense." />
     <title>AccordOS | Autonomous commercial execution on PayPal</title>
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="/" />
     <meta property="og:title" content="AccordOS | Autonomous commercial execution on PayPal" />
     <meta property="og:description" content="Invoice, source, schedule and pay out on PayPal Sandbox, with Claude agents, a policy vault and a payment firewall. Every dollar traced." />
     <meta property="og:image" content="/og.jpg" />
@@ -16,9 +17,11 @@
     <meta property="og:image:alt" content="AccordOS: invoice, source, schedule and pay out. Every dollar traced." />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
   </head>
   <body>
     <div id="root"></div>

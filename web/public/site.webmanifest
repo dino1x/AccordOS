@@ -1,0 +1,14 @@
+{
+  "name": "AccordOS",
+  "short_name": "AccordOS",
+  "description": "Autonomous commercial execution desk on PayPal.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fefcf5",
+  "theme_color": "#fefcf5",
+  "icons": [
+    { "src": "/brand/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/brand/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

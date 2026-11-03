@@ -81,6 +81,12 @@ Each state has a `-bg` tint for tags and row fills. Budget categories use ink, s
 - The judge tour runs as a floating charcoal dock above the telemetry bar, with a sage progress line and a Stop button.
 - Below 1100px panels stack to full width; below 760px gutters drop to 16px, the strip keeps only mode and stream, and the switcher scrolls horizontally. There is no horizontal page scroll; wide tables and the Gantt scroll inside their panel.
 
+### Logo
+
+- **Mark:** two strokes meeting at an apex, one cream and one sage, for the two parties to a deal, with a sage dot between them for the money the desk holds in escrow. It sits on a charcoal tile with 8/32 corner radius, and inverts to a cream tile in the dark theme.
+- **Wordmark:** "Accord" in charcoal and "OS" in sage, Geist 600, tracking -0.035em.
+- **Files:** `web/public/favicon.svg`, `web/public/brand/` (mark and wordmark in light and dark, 192 and 512px icons) and `web/public/apple-touch-icon.png`.
+
 ## 6. Components
 
 - **Figure:** a large tabular sans number with a mono label above and a muted note below.

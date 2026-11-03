@@ -21,7 +21,7 @@ export function BakeOffStage() {
         <div>
           <div className="eyebrow">/02 <b>procurement</b> channel3 + orders v2</div>
           <h1>Three vendors bid. <span className="hl">PayPal holds the winner.</span></h1>
-          <p>Each line item is sourced through Channel3, then three vendor agents bid against each other. The winner becomes a PayPal Orders v2 AUTHORIZE hold only if the policy vault passes it and the payer approves.</p>
+          <p>Channel3 finds each item, three vendor agents bid it down, and the winner gets a PayPal hold once the policy vault and the payer approve.</p>
         </div>
         <div className="row">
           <Btn busy={busy === "bake"} disabled={!state?.brief} onClick={() => run("bake", () => post("/bakeoff"), (s) => `${s.auctions.length} auctions settled`)}>
@@ -53,7 +53,7 @@ export function BakeOffStage() {
         </div>
 
         <div className="span-8">
-          {current ? <Arena key={current.id} a={current} /> : <Panel title="Arena" loading={loading} error={error} onRetry={reload} empty={!loading ? { text: "Select a line item to replay its auction." } : false} />}
+          {current ? <Arena key={current.id} a={current} /> : <Panel title="Arena" loading={loading} error={error} onRetry={reload} empty={!loading ? { text: "Pick a line item to replay its auction." } : false} />}
         </div>
 
         <div className="span-12">
@@ -76,7 +76,8 @@ function HoldTag({ a, holds }: { a: Auction; holds: Hold[] }) {
   if (!a.policy.allowed) return <Tag state="blocked">Vault refused</Tag>;
   if (!h) return <Tag state="draft" />;
   if (h.status === "created") return <Tag state="invoiced">Needs approval</Tag>;
-  return <Tag state={h.status === "captured" ? "captured" : h.status === "voided" ? "blocked" : "authorized"} />;
+  if (h.status === "voided") return <Tag state="blocked">Voided</Tag>;
+  return <Tag state={h.status === "captured" ? "captured" : "authorized"} />;
 }
 
 function Arena({ a }: { a: Auction }) {
@@ -174,7 +175,7 @@ function Arena({ a }: { a: Auction }) {
             <Figure label="Saved" value={money0(a.savings)} sub="vs best opening bid" />
           </div>
           <p className="dim" style={{ fontSize: 12 }}>
-            {a.policy.requiresHuman ? "Above the $5,000 autonomy limit: the payer must approve the hold in PayPal." : "Inside the autonomy limit. The hold still needs payer approval in PayPal before funds are held."}
+            {a.policy.requiresHuman ? "Over the $5,000 autonomy limit: the payer approves in PayPal." : "Within the autonomy limit. The payer still approves in PayPal."}
           </p>
           <Btn kind="primary" disabled={!done || !!a.holdId || !a.policy.allowed} busy={busy === "hold"} onClick={() => run("hold", () => post(`/auctions/${a.id}/hold`), "AUTHORIZE order created")}>
             {a.holdId ? "Hold placed" : "Place Orders v2 hold"}
@@ -197,11 +198,11 @@ function HoldsPanel() {
   return (
     <Panel
       title="Orders v2 holds"
-      meta="Funds are authorized at award and captured only at dispatch"
+      meta="Held at award, captured at dispatch"
       loading={!state && !error}
       error={error}
       onRetry={reload}
-      empty={state && !holds.length ? { text: "No holds yet. Place holds for the winning bids above." } : false}
+     empty={state && !holds.length ? { text: "No holds yet. Place them for the winning bids above." } : false}
       actions={<>{awaiting.length > 0 && (
         <Btn
           sm
@@ -225,7 +226,7 @@ function HoldsPanel() {
                   <div className="trunc"><strong>{auction ? `${auction.qty} x ${auction.sku.title}` : h.auctionId}</strong></div>
                   <div className="note mono trunc">order {h.orderId}{h.authorizationId ? ` / auth ${h.authorizationId}` : ""}{h.tracking ? ` / ${h.tracking.carrier} ${h.tracking.number}` : ""}</div>
                 </div>
-                <div className="row"><span className="mono">{money(h.amount)}</span><Tag state={h.status === "created" ? "invoiced" : h.status === "captured" ? "captured" : h.status === "voided" ? "blocked" : "authorized"}>{h.status === "created" ? "Needs approval" : undefined}</Tag>{h.fastForwarded && <span className="tag neutral" title="Live mode: no buyer approved this order in PayPal, so its authorization and capture are simulated">Fast-forwarded</span>}</div>
+                <div className="row"><span className="mono">{money(h.amount)}</span><Tag state={h.status === "created" ? "invoiced" : h.status === "captured" ? "captured" : h.status === "voided" ? "blocked" : "authorized"}>{h.status === "created" ? "Needs approval" : h.status === "voided" ? "Voided" : undefined}</Tag>{h.fastForwarded && <span className="tag neutral" title="No buyer approved this in PayPal, so its authorization is simulated">Fast-forwarded</span>}</div>
                 <div className="row">
                   {h.status === "created" && <PayPalApprove sm label="Approve hold" orderId={h.orderId} onApproved={() => run(`a${h.id}`, () => post(`/holds/${h.id}/authorize`), "Funds held")} />}
                   {h.status === "authorized" && (

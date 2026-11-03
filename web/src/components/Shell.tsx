@@ -56,7 +56,7 @@ function Clock() {
   return <span className="clock hide-sm" ref={ref} aria-label="Current time" />;
 }
 
-// Tavily-style announcement bar, carrying the live system state instead of marketing.
+// Announcement-style strip carrying the live system state.
 export function StatusStrip() {
   const { state, connected } = useDesk();
   return (
@@ -69,7 +69,7 @@ export function StatusStrip() {
               {state.mode === "live" ? "Live on PayPal Sandbox" : "Replay mode: simulated PayPal Sandbox"}
             </span>
             <span className="sep hide-sm" />
-            <span className="sig hide-sm" title="Brief parsing, widget intent, dispute narrative and AG Studio assistant">{state.aiMode === "claude" ? "Claude reasoning" : "Deterministic rules"}</span>
+            <span className="sig hide-sm" title="Brief parsing, widgets, disputes and the AG Studio assistant">{state.aiMode === "claude" ? "Claude reasoning" : "Deterministic rules"}</span>
             <span className="sep hide-sm" />
             <span className="sig hide-sm" title="Product search source">{state.catalogMode === "channel3" ? "Channel3 live catalog" : "Fixture catalog"}</span>
           </>
@@ -93,6 +93,7 @@ function useTheme(): [string, () => void] {
     const next = theme === "dark" ? "light" : "dark";
     if (next === "dark") document.documentElement.dataset.theme = "dark";
     else delete document.documentElement.dataset.theme;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", next === "dark" ? "#151413" : "#fefcf5");
     try {
       localStorage.setItem("accordos.theme", next);
     } catch {
@@ -103,17 +104,26 @@ function useTheme(): [string, () => void] {
   return [theme, toggle];
 }
 
+// The mark: two strokes for the two parties meeting at the apex, and the sage dot
+// between them for the money the desk holds in escrow until both sides deliver.
+export function Mark({ size = 30 }: { size?: number }) {
+  return (
+    <svg className="mark" width={size} height={size} viewBox="0 0 32 32" aria-hidden>
+      <rect width="32" height="32" rx="8" fill="var(--mark-tile)" />
+      <path d="M8.5 23.5 L16 8" stroke="var(--mark-a)" strokeWidth="2.8" strokeLinecap="round" />
+      <path d="M16 8 L23.5 23.5" stroke="var(--mark-b)" strokeWidth="2.8" strokeLinecap="round" />
+      <circle cx="16" cy="19.4" r="2.2" fill="var(--mark-b)" />
+    </svg>
+  );
+}
+
 export function Wordmark() {
   return (
     <a className="wordmark" href="#tranche" aria-label="AccordOS home">
-      <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden>
-        <rect width="32" height="32" rx="8" fill="var(--text-0)" />
-        <path d="M9 22 L16 9 L23 22" stroke="var(--ink-0)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-        <path d="M11.5 18 H20.5" stroke="var(--accent-soft)" strokeWidth="2.6" strokeLinecap="round" />
-      </svg>
+      <Mark />
       <span>
-        accordos
-        <small>on PayPal</small>
+        <span className="name">Accord<b>OS</b></span>
+        <small>execution desk on PayPal</small>
       </span>
     </a>
   );
@@ -145,7 +155,7 @@ export function Header() {
             {busy ? "Resetting" : "Reset demo"}
           </button>
           {tour && (
-            <button className={`btn ${tour.running ? "" : "primary"}`} disabled={!state?.ready && !tour.running} onClick={tour.running ? tour.stop : tour.start} title="A 30-second guided walkthrough of all five stages">
+            <button className={`btn ${tour.running ? "" : "primary"}`} disabled={!state?.ready && !tour.running} onClick={tour.running ? tour.stop : tour.start} title="30-second guided tour of all five stages">
               {tour.running ? "Stop tour" : <>Judge tour <span className="arrow" aria-hidden>&rarr;</span></>}
             </button>
           )}
@@ -202,7 +212,7 @@ export function TelemetryDrawer() {
       {open && (
         <div className="drawer-body">
           {telemetry.length === 0 ? (
-            <div className="empty"><p>API calls appear here as soon as any stage moves money.</p></div>
+            <div className="empty"><p>API calls appear here as money moves.</p></div>
           ) : (
             <table className="tele">
               <thead>

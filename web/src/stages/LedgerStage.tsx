@@ -74,7 +74,7 @@ export function LedgerStage() {
         <div>
           <div className="eyebrow">/04 <b>treasury</b> payouts + ag studio</div>
           <h1>Every dollar, <span className="hl">every API call</span></h1>
-          <p>Every dollar from client to escrow to vendor, with the PayPal call that moved it and inline actions. Ask a finance question to spawn a live widget over the same stream.</p>
+          <p>Client to escrow to vendor, each move tied to the PayPal call behind it. Ask a question to build a live widget.</p>
         </div>
         <Btn kind="primary" busy={busy === "pay"} disabled={!state?.holds.some((h) => h.status === "captured")} onClick={() => run("pay", () => post("/payouts"), "Payout batch sent through the firewall")}>
           Run firewall-gated payouts
@@ -104,7 +104,7 @@ export function LedgerStage() {
         </div>
 
         <div className="span-12">
-          <Panel title="Ledger" meta={`${ledger.length} entries`} loading={loading} error={error} onRetry={reload} empty={!loading && !ledger.length ? { text: "Ledger entries appear as tranches, holds and payouts move." } : false} flush>
+          <Panel title="Ledger" meta={`${ledger.length} entries`} loading={loading} error={error} onRetry={reload} empty={!loading && !ledger.length ? { text: "Entries appear as money moves." } : false} flush>
             <div className="ledger-grid">
               <AgGridReact<LedgerRow> theme={gridTheme} rowData={ledger} columnDefs={columns} getRowId={(p) => p.data.id} animateRows enableCellTextSelection tooltipShowDelay={300} />
             </div>
@@ -116,7 +116,7 @@ export function LedgerStage() {
         </div>
 
         <div className="span-12">
-          <Panel title="AG Studio analytics canvas" meta="Drag fields from Ledger, Tranches, Holds and Payouts to build reports. Data refreshes with every PayPal event." loading={loading} error={error} onRetry={reload} flush>
+          <Panel title="AG Studio analytics canvas" meta="Drag fields to build reports, or ask the assistant" loading={loading} error={error} onRetry={reload} flush>
             {state && (
               <ErrorBoundary fallback={(e, retry) => <div className="error" role="alert"><p>AG Studio could not render: {e.message}</p><Btn onClick={retry}>Retry</Btn></div>}>
                 <Suspense fallback={<div style={{ padding: 16 }}><Skeleton lines={6} /></div>}>
@@ -141,14 +141,14 @@ function WidgetStudio() {
   return (
     <Panel title="Widget studio" meta={state?.aiMode === "claude" ? "Claude maps the question to a widget" : "Rules map the question to a widget"}>
       <form className="prompt-bar" onSubmit={(e) => { e.preventDefault(); if (prompt.trim()) submit(prompt.trim()); }}>
-        <input type="text" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Ask a finance question about this project" aria-label="Widget prompt" maxLength={300} />
+        <input type="text" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Ask about this project's money" aria-label="Widget prompt" maxLength={300} />
         <Btn kind="primary" type="submit" busy={busy === "spawn"} disabled={!prompt.trim()}>Build widget</Btn>
       </form>
       <div className="chips" style={{ margin: "10px 0 16px" }}>
         {SUGGESTIONS.map((s) => <button key={s} className="chip" onClick={() => submit(s)} disabled={busy !== null}>{s}</button>)}
       </div>
       {state && state.widgets.length === 0 ? (
-        <div className="empty"><p>No widgets yet. Ask a question or pick a suggestion.</p></div>
+        <div className="empty"><p>Ask a question or pick a suggestion.</p></div>
       ) : (
         <div className="widgets">{state?.widgets.map((w) => <WidgetCard key={w.id} w={w} s={state} />)}</div>
       )}
@@ -178,7 +178,7 @@ function AnomalyRadar({ s, z }: { s: AppState; z: number }) {
   const sd = Math.sqrt(amounts.reduce((a, b) => a + (b - mean) ** 2, 0) / (amounts.length || 1)) || 1;
   const scored = rows.map((r) => ({ r, z: (r.amount - mean) / sd, flag: Math.abs((r.amount - mean) / sd) >= z || r.state === "blocked" || r.state === "disputed" }));
   const flagged = scored.filter((x) => x.flag);
-  if (!rows.length) return <div className="empty"><p>No settled ledger entries to scan yet.</p></div>;
+  if (!rows.length) return <div className="empty"><p>Nothing settled to scan yet.</p></div>;
   const R = 90;
   return (
     <div className="row" style={{ alignItems: "flex-start", gap: 16 }}>
@@ -257,7 +257,7 @@ function NudgeBoard({ s, minDays }: { s: AppState; minDays: number }) {
     })
     .filter((x) => x.days >= -365 && (minDays <= 0 || x.days >= minDays))
     .sort((a, b) => b.priority - a.priority);
-  if (!rows.length) return <div className="empty"><p>No open invoices match. Issued, unpaid tranches appear here ranked by priority.</p></div>;
+  if (!rows.length) return <div className="empty"><p>No unpaid invoices right now.</p></div>;
   return (
     <div>
       {rows.map((x, i) => (

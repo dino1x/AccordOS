@@ -22,7 +22,7 @@ export function RedTeamStage() {
   };
   useEffect(load, [state?.auctions.length]);
 
-  // Results fired by the judge tour land here too.
+  // Results fired by the guided tour land here too.
   useEffect(() => {
     const onResult = (e: Event) => {
       const r = (e as CustomEvent<RedTeamResult>).detail;
@@ -67,7 +67,7 @@ export function RedTeamStage() {
         <div>
           <div className="eyebrow">/05 <b>proof</b> firewall + disputes</div>
           <h1>Try to steal the money. <span className="hl">Watch it fail.</span></h1>
-          <p>Fire real attack payloads at the same firewall that guards every payout. Each instruction is inspected by deterministic code before any PayPal API is reachable. The clean control must pass, or the firewall is just saying no.</p>
+          <p>Fire real attacks at the firewall that guards every payout. Code, not a model, checks each one before PayPal is reachable, and a clean control must still pass.</p>
         </div>
         <Btn kind="primary" busy={busy === "all"} disabled={!attacks} onClick={() => fire()}>
           Run all {attacks?.length ?? ""} attacks
@@ -76,7 +76,7 @@ export function RedTeamStage() {
 
       <div className="grid cols-12">
         <div className="span-12">
-          <Panel title="Bench result" meta="Deterministic code, no model in the loop">
+          <Panel title="Bench result" meta="No model in the loop">
             <div className="figures hero">
               <Figure lg label="Blocked" value={ran.length ? `${attackRuns.filter((v) => v.blocked).length}/${attackRuns.length}` : "-"} sub="Attack instructions stopped" />
               <Figure lg label="Firewall time" value={<span ref={counter}>{total === null ? "-" : `${total}us`}</span>} sub={ran.length ? `max ${Math.max(...ran.map((v) => v.micros))}us per instruction` : "Budget: under 5ms each"} />
@@ -87,7 +87,7 @@ export function RedTeamStage() {
         </div>
 
         <div className="span-7">
-          <Panel title="Attack library" meta="Payloads modelled on real payment-fraud and prompt-injection patterns" loading={!attacks && !error} error={error} onRetry={load} flush>
+          <Panel title="Attack library" meta="Real fraud and prompt-injection patterns" loading={!attacks && !error} error={error} onRetry={load} flush>
             {attacks?.map((a) => {
               const v = verdicts[a.id];
               return (
@@ -116,7 +116,7 @@ export function RedTeamStage() {
         </div>
 
         <div className="span-5">
-          <Panel title="Check matrix" meta="Every instruction runs every check" empty={!ran.length ? { text: "Run the bench to see which check stopped each attack." } : false}>
+          <Panel title="Check matrix" empty={!ran.length ? { text: "Run the bench to see which check stops each attack." } : false}>
             <div style={{ overflowX: "auto" }}>
               <table className="matrix">
                 <thead>
@@ -154,7 +154,7 @@ function DisputePanel() {
       error={error}
       onRetry={reload}
       actions={<Btn sm kind="danger" busy={busy === "open"} disabled={!canOpen} onClick={() => run("open", () => post("/disputes", {}), "Dispute opened")} title={canOpen ? "Simulates CUSTOMER.DISPUTE.CREATED" : "Capture a hold first"}>Open dispute</Btn>}
-      empty={state && !disputes.length ? { text: canOpen ? "No disputes. Open one to watch the defense agent build its evidence." : "Capture a hold in Stage 02 first: only captured purchases can be disputed." } : false}
+     empty={state && !disputes.length ? { text: canOpen ? "No disputes. Open one to watch the defense agent build its evidence." : "Capture a hold in Stage 02 first: only captured purchases can be disputed." } : false}
     >
       <div style={{ display: "grid", gap: 12 }}>
         {disputes.map((d) => <DisputeCard key={d.id} d={d} busy={busy} run={run} />)}
