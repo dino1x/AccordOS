@@ -1,0 +1,15 @@
+# Never upload secrets or private notes; Vercel builds from source and reads keys from its own env settings.
+.env
+.env.*
+node_modules
+dist
+research_notes
+reports
+CLAUDE.md
+SPONSOR_PACKAGES_SPEC.md
+.claude
+.vscode
+.idea
+.DS_Store
+*.log
+*.map
