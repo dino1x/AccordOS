@@ -1,6 +1,6 @@
 // Payer approval through the PayPal JS SDK v6 in live mode. In replay mode the
 // same flow runs with a clearly labelled simulated approval.
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../lib/api";
 import { useDesk } from "../lib/api";
 import { Btn, useToast } from "./ui";
@@ -11,10 +11,15 @@ declare global {
   }
 }
 
-const POPUP_TIMEOUT_MS = 45_000;
+// Long enough to sign in to a Sandbox buyer account and approve.
+const POPUP_TIMEOUT_MS = 120_000;
 
 let sdkScript: Promise<void> | null = null;
 let sdkInstance: Promise<any> | null = null;
+// The resolved SDK, so a click can open the popup synchronously: browsers only allow
+// popups during the click itself, and "auto" mode otherwise falls back to an embedded
+// frame where Safari and Brave block PayPal's sign-in cookies.
+let sdkReady: any = null;
 
 function loadScript(): Promise<void> {
   sdkScript ??= new Promise((resolve, reject) => {
@@ -35,12 +40,17 @@ function instance(): Promise<any> {
   sdkInstance ??= (async () => {
     await loadScript();
     const { clientToken } = await api<{ clientToken: string }>("/paypal/client-token");
-    return window.paypal.createInstance({ clientToken, components: ["paypal-payments"], pageType: "checkout" });
+    return (sdkReady = await window.paypal.createInstance({ clientToken, components: ["paypal-payments"], pageType: "checkout" }));
   })().catch((e) => {
     sdkInstance = null;
     throw e;
   });
   return sdkInstance;
+}
+
+function popupError(e: unknown): Error {
+  const msg = e instanceof Error ? e.message : String(e);
+  return new Error(/popup|blocked|window/i.test(msg) ? "The PayPal window was blocked. Allow pop-ups for this site and try again." : msg);
 }
 
 export function PayPalApprove(props: { label: string; orderId?: string; createOrder?: () => Promise<{ orderId: string }>; onApproved: (orderId: string) => Promise<unknown>; sm?: boolean }) {
@@ -50,6 +60,10 @@ export function PayPalApprove(props: { label: string; orderId?: string; createOr
   const live = state?.mode === "live";
   // Settles the open popup session when the user cancels or it times out.
   const abort = useRef<((reason: Error) => void) | null>(null);
+  // Warm the SDK as soon as a PayPal button is on screen.
+  useEffect(() => {
+    if (live) instance().catch(() => {});
+  }, [live]);
 
   async function start() {
     setBusy(true);
@@ -67,22 +81,25 @@ export function PayPalApprove(props: { label: string; orderId?: string; createOr
         abort.current = reject;
         timer = setTimeout(() => reject(new Error(`No response from the PayPal window after ${POPUP_TIMEOUT_MS / 1000}s. If you finish approving there, the hold still updates.`)), POPUP_TIMEOUT_MS);
       });
-      const sdk = await Promise.race([instance(), stopped]);
-      await Promise.race([stopped, new Promise<void>((resolve, reject) => {
-        const session = sdk.createPayPalOneTimePaymentSession({
-          onApprove: async (data: { orderId: string }) => {
-            try {
-              await props.onApproved(data.orderId);
-              resolve();
-            } catch (e) {
-              reject(e);
-            }
-          },
-          onCancel: () => reject(new Error("Payer closed the PayPal window")),
-          onError: (e: unknown) => reject(e instanceof Error ? e : new Error("PayPal checkout error")),
+      const checkout = (sdk: any) =>
+        new Promise<void>((resolve, reject) => {
+          const session = sdk.createPayPalOneTimePaymentSession({
+            onApprove: async (data: { orderId: string }) => {
+              try {
+                await props.onApproved(data.orderId);
+                resolve();
+              } catch (e) {
+                reject(e);
+              }
+            },
+            onCancel: () => reject(new Error("Payer closed the PayPal window")),
+            onError: (e: unknown) => reject(e instanceof Error ? e : new Error("PayPal checkout error")),
+          });
+          session.start({ presentationMode: "popup" }, orderPromise).catch((e: unknown) => reject(popupError(e)));
         });
-        session.start({ presentationMode: "auto" }, orderPromise).catch(reject);
-      })]);
+      // Normally the SDK is warm and the popup opens inside this click; if it is still
+      // loading, wait for it and try (a blocked popup asks for one more click).
+      await Promise.race([stopped, sdkReady ? checkout(sdkReady) : Promise.race([instance(), stopped]).then(checkout)]);
     } catch (e) {
       toast({ kind: "err", text: e instanceof Error ? e.message : String(e) });
     } finally {

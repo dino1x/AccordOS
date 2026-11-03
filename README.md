@@ -267,6 +267,8 @@ The checks are pure functions with no I/O. On the bench, all eight attacks are b
 npm test
 ```
 
+`npm test` simulates PayPal (`PAYPAL_REPLAY=1`) so routine runs never move Sandbox money; Claude and Channel3 still run live when their keys are set. `npm run test:live` runs the same checks against the PayPal Sandbox. It sends real Sandbox Payouts, so the business account needs a balance to cover them.
+
 The self-test drives the whole desk end to end and asserts:
 - the allocation is feasible
 - tranches sum correctly
@@ -303,7 +305,7 @@ The self-test drives the whole desk end to end and asserts:
 - Bryntum's trial package runs an obfuscated `postinstall` script. It is not needed at runtime, and npm's script approval blocks it by default.
 - The dependency Gantt in Stage 03 is a custom React and SVG component. The Bryntum Scheduler sits beside it.
 - The early-payment discount is enforced by AccordOS and stated in the invoice terms. PayPal invoices have no native conditional discount.
-- **Channel3 latency.** Searches usually take 2-6 s but sometimes exceed 10 s. Each search gets 12 s and one retry. If both fail, the item reuses its last live Channel3 results from this server's lifetime. The fixture catalog, labelled `Fixture`, appears only if Channel3 has never answered for that item.
+- **Channel3 latency.** Searches usually take 2-6 s but sometimes exceed 10 s. Each search gets 12 s and one retry. If both fail, the item reuses its last live Channel3 results, which are kept in the OS temp folder so they survive restarts and Vercel warm starts. The fixture catalog, labelled `Fixture`, appears only if Channel3 has never answered for that item.
 - **`npm audit`.** The remaining advisories come from `@paypal/agent-toolkit` 1.11.0 (the latest release), not from AccordOS code:
   - Its LangChain, Vercel AI SDK and OpenAI integrations, and the packages beneath them, are never loaded: AccordOS imports only `@paypal/agent-toolkit/mcp` to read PayPal's tool schemas.
   - That entry does load mathjs, which `package.json` overrides to the patched 15.2.0. It also loads zod 3 to define its schemas; AccordOS validates its own input with zod 4.

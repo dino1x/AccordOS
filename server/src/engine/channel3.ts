@@ -1,3 +1,6 @@
+import { readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { config } from "../config.js";
 import { record, scrub } from "../telemetry.js";
 import type { LineItem, Sku } from "../types.js";
@@ -40,7 +43,26 @@ function num(v: unknown): number {
 // Channel3 usually answers in 2-6 s but occasionally takes longer.
 const TIMEOUT_MS = 12_000;
 // Last good live result per query, reused if Channel3 is slow, so a reset never drops to fixtures.
-const lastGood = new Map<string, Sku[]>();
+// Kept in the OS temp dir (/tmp on Vercel) so a restart or cold start starts warm too.
+const CACHE_FILE = path.join(tmpdir(), "accordos-channel3-cache.json");
+const lastGood = new Map<string, Sku[]>(loadCache());
+
+function loadCache(): [string, Sku[]][] {
+  try {
+    return Object.entries(JSON.parse(readFileSync(CACHE_FILE, "utf8")) as Record<string, Sku[]>);
+  } catch {
+    return [];
+  }
+}
+
+function remember(query: string, skus: Sku[]) {
+  lastGood.set(query, skus);
+  try {
+    writeFileSync(CACHE_FILE, JSON.stringify(Object.fromEntries(lastGood)));
+  } catch {
+    // read-only disk: the in-memory copy still covers this process
+  }
+}
 
 async function channel3Search(li: LineItem, attempt: number): Promise<Sku[]> {
   const started = performance.now();
@@ -89,7 +111,7 @@ export async function searchSkus(li: LineItem): Promise<{ skus: Sku[]; source: S
     for (const attempt of [1, 2]) {
       try {
         const skus = await channel3Search(li, attempt);
-        lastGood.set(li.query, skus);
+        remember(li.query, skus);
         return { skus, source: "channel3" };
       } catch (err) {
         error = err instanceof Error ? err.message : String(err);

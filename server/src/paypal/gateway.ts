@@ -2,6 +2,7 @@
 // Sandbox (APIMatic SDK for Orders/Payments, REST for the rest). In replay mode
 // a deterministic simulator returns PayPal-shaped responses so the product
 // runs with zero keys. Every call, live or replayed, lands in telemetry.
+import { randomBytes } from "node:crypto";
 import QRCode from "qrcode";
 import { config, paypalMode } from "../config.js";
 import { record } from "../telemetry.js";
@@ -166,6 +167,9 @@ export async function createOrder(intent: "AUTHORIZE" | "CAPTURE", amount: numbe
 // other failure is real and is thrown.
 const FAST_FORWARD_AUTH = "AUTH-";
 const FAST_FORWARD_CAPTURE = "CAP-";
+// Live-only, so random rather than the replay sequence, which restarts with each process
+// and could repeat an id restored from a saved snapshot.
+const ffId = (prefix: string) => prefix + [...randomBytes(13)].map((b) => "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ"[b % 34]).join("");
 
 function isOrderNotApproved(err: unknown): boolean {
   if (!(err instanceof PayPalError)) return false;
@@ -178,7 +182,7 @@ export async function authorizeOrder(orderId: string): Promise<{ authorizationId
     return await sdkAuthorizeOrder(orderId);
   } catch (err) {
     if (!isOrderNotApproved(err)) throw err;
-    return replay("POST", `/v2/checkout/orders/${orderId}/authorize`, "authorize_order", { id: orderId, note: "sandbox_fast_forward" }, { authorizationId: rid(FAST_FORWARD_AUTH, 13), status: "CREATED", fastForwarded: true });
+    return replay("POST", `/v2/checkout/orders/${orderId}/authorize`, "authorize_order", { id: orderId, note: "sandbox_fast_forward" }, { authorizationId: ffId(FAST_FORWARD_AUTH), status: "CREATED", fastForwarded: true });
   }
 }
 
@@ -195,7 +199,7 @@ export async function getOrder(orderId: string) {
 export async function captureAuthorization(authorizationId: string, amount: number): Promise<{ captureId: string; status: string; fastForwarded?: boolean }> {
   if (!live()) return replay("POST", `/v2/payments/authorizations/${authorizationId}/capture`, "capture_authorized_payment", { amount }, { captureId: rid("", 17), status: "COMPLETED" });
   if (authorizationId.startsWith(FAST_FORWARD_AUTH)) {
-    return replay("POST", `/v2/payments/authorizations/${authorizationId}/capture`, "capture_authorized_payment", { amount, note: "sandbox_fast_forward" }, { captureId: rid(FAST_FORWARD_CAPTURE, 13), status: "COMPLETED", fastForwarded: true });
+    return replay("POST", `/v2/payments/authorizations/${authorizationId}/capture`, "capture_authorized_payment", { amount, note: "sandbox_fast_forward" }, { captureId: ffId(FAST_FORWARD_CAPTURE), status: "COMPLETED", fastForwarded: true });
   }
   return sdkCaptureAuthorization(authorizationId, amount);
 }

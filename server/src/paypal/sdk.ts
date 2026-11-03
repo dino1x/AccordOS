@@ -65,6 +65,8 @@ export async function sdkCreateOrder(intent: "AUTHORIZE" | "CAPTURE", amount: nu
         amount: { currencyCode: "USD", value: amount.toFixed(2) },
       },
     ],
+    // Shown in the PayPal checkout window in place of the Sandbox account's store name.
+    paymentSource: { paypal: { experienceContext: { brandName: "AccordOS" } } },
   };
   const result = await traced("POST", "/v2/checkout/orders", "create_order", body, () =>
     controllers().orders.createOrder({ body, prefer: "return=representation", paypalRequestId: requestId }),
