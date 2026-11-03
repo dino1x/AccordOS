@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.DS_Store
+.vscode/
+.idea/
+*.log
+*.map
+research_notes/
+reports/
+CLAUDE.md
+SPONSOR_PACKAGES_SPEC.md
+.claude/
+.vercel/
