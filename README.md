@@ -2,6 +2,17 @@
 
 **The commercial execution desk that runs a client project on PayPal: invoices in, supplier holds out, the schedule moving with every payment, and a firewall in front of every payout.**
 
+**[Live demo: accordos.site](https://accordos.site)** · **[Watch the 2-minute demo video](https://youtu.be/oLWQRayC7GQ)**
+
+The live demo runs on PayPal Sandbox. No sign-up needed: press **Judge tour** for a 30-second walkthrough of all five stages.
+
+| | |
+| --- | --- |
+| [![Brief to funded PayPal invoice tranches with a live QR code](docs/screens/tranche.jpg)](https://accordos.site/#tranche) | [![Three vendor agents bid on a Channel3 SKU; PayPal holds the winner](docs/screens/bakeoff.jpg)](https://accordos.site/#bakeoff) |
+| **01 Tranche:** brief to Invoicing v2 tranches, QR and JS SDK v6 checkout | **02 Bake-Off:** Channel3 sourcing, reverse auction, Orders v2 AUTHORIZE holds |
+| [![Gantt chart gated on PayPal payment states](docs/screens/schedule.jpg)](https://accordos.site/#schedule) | [![Red-team bench blocks eight payment attacks with zero PayPal calls](docs/screens/redteam.jpg)](https://accordos.site/#redteam) |
+| **03 Schedule:** payment-gated Gantt and Bryntum Scheduler reflowing on webhooks | **05 Red-Team:** 8 of 8 attacks blocked, Disputes API evidence |
+
 The AI proposes. Deterministic code and a human dispose. Every cent is traced.
 
 - **Sell side:** a client brief becomes PayPal Invoicing v2 tranche invoices with QR codes and early-payment terms.
@@ -195,9 +206,10 @@ The Stage 04 ledger is AG Grid Community with a custom Quartz theme bound to the
 Under it, `web/src/components/StudioCanvas.tsx` embeds AG Studio (`ag-studio` and `ag-studio-react` 3.0.0):
 - `<AgStudioProvider modules={[AgStudioAiModule]}>` wraps an `<AgStudio>` in edit mode.
 - The canvas is themed with `studioTheme.withParams(...)` using the DESIGN.md tokens.
-- It is bound to four live data sources: Ledger, Tranches, Holds and Payouts. Each has typed fields (currency, integer, text) and descriptions written for the AI.
+- It is bound to six live data sources: Ledger, Tranches, Holds, Payouts, Auctions and Vendors. Each has typed fields (currency, integer, decimal, text) and descriptions written for the AI.
+- Vendors is a shared dimension joined by four relationships: holds, auction wins and payouts link to a vendor, and each hold links to its auction. Charts keyed on the vendor therefore join across tables, and selecting a vendor filters its holds, savings and payouts together.
 - The data is rebuilt on every state version, so reports update as PayPal events land.
-- It opens on a pre-built report, `web/src/components/studioReport.ts`, so the canvas is never empty. The report has KPI tiles for ledger volume, invoiced tranches, authorized holds and firewall-cleared payouts, a bar chart of dollar volume by money state, a donut of awarded holds by vendor, and a grid of milestone tranches with their early-pay amounts.
+- It opens on a pre-built report, `web/src/components/studioReport.ts`, so the canvas is never empty. The report has KPI tiles for ledger volume, invoiced tranches, authorized holds and firewall-cleared payouts, a bar chart of dollar volume by money state, a donut of awarded holds by vendor, a bar chart of negotiated savings by vendor, and a grid of milestone tranches with their early-pay amounts.
 - The Studio Agent Framework is wired with `createAiHarness(api, { adapter, promptStarters })`, through the `ai` prop of `<AgStudio>`.
 - **With an Anthropic key, Studio's own agents run on Claude.** `createStudioAdapter` sends each turn to `POST /api/studio/turn`. `server/src/engine/studioTurn.ts` translates Studio's conversation items, tools and JSON response formats into Anthropic messages, `tool_use` and `tool_result` blocks, and translates the reply back into AG-UI events. Studio's orchestrator can therefore call `view_page` and `delegate_to`, and hand work to Studio's widget-building agent, which can build any chart a user asks for. Each turn appears in telemetry as `CLAUDE /v1/messages (ag_studio)`. The endpoint is rate-limited to 60 turns per IP per 10 minutes. If the call fails or no key is set, the turn falls back to the zero-key adapter below.
 - The zero-key `AgLlmAdapter`, in `web/src/components/studioAi.ts`, streams AG-UI events:

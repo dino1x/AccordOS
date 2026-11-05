@@ -25,8 +25,13 @@ export const initialStudioReport: AgReportState = {
         },
         "holds-by-vendor": {
           type: "donut-chart",
-          dataMapping: { categoryKey: [{ id: "holds.vendor" }], valueKey: [sum("holds.amount")] },
+          dataMapping: { categoryKey: [{ id: "vendors.name" }], valueKey: [sum("holds.amount")] },
           format: title("Awarded holds by vendor"),
+        },
+        "savings-by-vendor": {
+          type: "bar-chart-grouped",
+          dataMapping: { categoryKey: [{ id: "vendors.name" }], valueKey: [sum("auctions.savings")] },
+          format: title("Negotiated savings by vendor"),
         },
         "tranches-table": {
           type: "grid",
@@ -39,8 +44,9 @@ export const initialStudioReport: AgReportState = {
         "kpi-tranches": at(6, 0, 6, 7),
         "kpi-holds": at(12, 0, 6, 7),
         "kpi-payouts": at(18, 0, 6, 7),
-        "ledger-by-state": at(0, 7, 12, 16),
-        "holds-by-vendor": at(12, 7, 12, 16),
+        "ledger-by-state": at(0, 7, 8, 16),
+        "holds-by-vendor": at(8, 7, 8, 16),
+        "savings-by-vendor": at(16, 7, 8, 16),
         "tranches-table": at(0, 23, 24, 14),
       },
     },

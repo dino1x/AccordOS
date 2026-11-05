@@ -74,10 +74,11 @@ function sources(s: AppState): AgDataSourcesDefinition {
         description: "Orders v2 AUTHORIZE holds placed for vendor awards, captured at dispatch.",
         data: s.holds.map((h) => {
           const a = s.auctions.find((x) => x.id === h.auctionId);
-          return { id: h.id, vendor: vendorName(h.vendorId), item: a ? a.sku.title : h.auctionId, quantity: a?.qty ?? 0, status: h.status, carrier: h.tracking?.carrier ?? "", amount: h.amount };
+          return { id: h.id, auction: h.auctionId, vendor: vendorName(h.vendorId), item: a ? a.sku.title : h.auctionId, quantity: a?.qty ?? 0, status: h.status, carrier: h.tracking?.carrier ?? "", amount: h.amount };
         }),
         fields: [
           { id: "id", name: "Hold", format: "textFormat" },
+          { id: "auction", name: "Auction", format: "textFormat" },
           { id: "vendor", name: "Vendor", format: "textFormat" },
           { id: "item", name: "Item", format: "textFormat" },
           { id: "quantity", name: "Quantity", format: "integerFormat" },
@@ -99,6 +100,41 @@ function sources(s: AppState): AgDataSourcesDefinition {
           { id: "amount", name: "Amount (USD)", format: "currencyFormat" },
         ],
       },
+      {
+        id: "auctions",
+        name: "Auctions",
+        description: "Three-vendor reverse auctions run on Channel3-sourced SKUs: opening bid, winning award and negotiated savings per line item.",
+        data: s.auctions.map((a) => ({ id: a.id, item: a.sku.title, winner: vendorName(a.winnerId), quantity: a.qty, opening: a.openingTotal, award: a.winningBid.total, savings: a.savings, slaDays: a.winningBid.slaDays })),
+        fields: [
+          { id: "id", name: "Auction", format: "textFormat" },
+          { id: "item", name: "Item", format: "textFormat" },
+          { id: "winner", name: "Winning vendor", format: "textFormat" },
+          { id: "quantity", name: "Quantity", format: "integerFormat" },
+          { id: "opening", name: "Opening bid (USD)", format: "currencyFormat" },
+          { id: "award", name: "Award (USD)", format: "currencyFormat" },
+          { id: "savings", name: "Negotiated savings (USD)", format: "currencyFormat" },
+          { id: "slaDays", name: "Delivery days", format: "integerFormat" },
+        ],
+      },
+      {
+        id: "vendors",
+        name: "Vendors",
+        description: "The vendor agents that bid in the auctions. Holds, auction wins and payouts all link to a vendor, so filtering by vendor filters them together.",
+        data: [...new Map(s.auctions.flatMap((a) => a.vendors).map((v) => [v.name, { name: v.name, payee: v.payeeEmail, strategy: v.strategy, reliability: v.reliability }])).values()],
+        fields: [
+          { id: "name", name: "Vendor", format: "textFormat" },
+          { id: "payee", name: "Payee email", format: "textFormat" },
+          { id: "strategy", name: "Bidding strategy", format: "textFormat" },
+          { id: "reliability", name: "Reliability", format: "decimalFormat" },
+        ],
+      },
+    ],
+    // Vendor is the shared dimension: picking one cross-filters its holds, auction wins and payouts.
+    relationships: [
+      { id: "holds-vendor", source: { tableId: "holds", fieldId: "vendor" }, target: { tableId: "vendors", fieldId: "name" }, type: "many-to-one" },
+      { id: "auctions-vendor", source: { tableId: "auctions", fieldId: "winner" }, target: { tableId: "vendors", fieldId: "name" }, type: "many-to-one" },
+      { id: "payouts-vendor", source: { tableId: "payouts", fieldId: "receiver" }, target: { tableId: "vendors", fieldId: "payee" }, type: "many-to-one" },
+      { id: "holds-auction", source: { tableId: "holds", fieldId: "auction" }, target: { tableId: "auctions", fieldId: "id" }, type: "many-to-one" },
     ],
   };
 }
