@@ -77,6 +77,10 @@ export async function ingestBrief(text: string, opts?: { fastBoot?: boolean }) {
   const allocation = allocate(brief);
   resetState();
   freightDelay = 0;
+  // Hold ids are deterministic per line item, so a new project must forget the last one's
+  // payouts or its captured holds would read as already disbursed.
+  settledRefs.clear();
+  settledRefs.add("SETTLED-REF-0001");
   state.brief = brief;
   state.allocation = allocation;
   const procurement = categoryBudget(allocation, "procurement");
