@@ -13,6 +13,10 @@ The live demo runs on PayPal Sandbox. No sign-up needed: press **Judge tour** fo
 | [![Gantt chart gated on PayPal payment states](docs/screens/schedule.jpg)](https://accordos.site/#schedule) | [![Red-team bench blocks eight payment attacks with zero PayPal calls](docs/screens/redteam.jpg)](https://accordos.site/#redteam) |
 | **03 Schedule:** payment-gated Gantt and Bryntum Scheduler reflowing on webhooks | **05 Red-Team:** 8 of 8 attacks blocked, Disputes API evidence |
 
+[![AG Studio analytics canvas bound to six live AccordOS sources with a Claude assistant](docs/screens/ledger.jpg)](https://accordos.site/#ledger)
+
+**04 Ledger & AG Studio:** AG Grid chain-of-custody ledger, Claude-generated widgets, six cross-filtered AG Studio sources, and a Claude-backed Studio assistant (`POST /v1/messages (ag_studio)`)
+
 The AI proposes. Deterministic code and a human dispose. Every cent is traced.
 
 - **Sell side:** a client brief becomes PayPal Invoicing v2 tranche invoices with QR codes and early-payment terms.
