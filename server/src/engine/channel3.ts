@@ -5,6 +5,7 @@ import { config } from "../config.js";
 import { record, scrub } from "../telemetry.js";
 import type { LineItem, Sku } from "../types.js";
 import { hash } from "./brief.js";
+import { CHANNEL3_SEED_CACHE } from "./channel3Seed.js";
 
 // Fixture catalog used when no Channel3 key is configured. Titles are generic
 // and labelled as fixtures in the UI so they are never mistaken for live offers.
@@ -48,10 +49,12 @@ const CACHE_FILE = path.join(tmpdir(), "accordos-channel3-cache.json");
 const lastGood = new Map<string, Sku[]>(loadCache());
 
 function loadCache(): [string, Sku[]][] {
+  const seed = Object.entries(CHANNEL3_SEED_CACHE);
   try {
-    return Object.entries(JSON.parse(readFileSync(CACHE_FILE, "utf8")) as Record<string, Sku[]>);
+    const fromDisk = JSON.parse(readFileSync(CACHE_FILE, "utf8")) as Record<string, Sku[]>;
+    return [...seed, ...Object.entries(fromDisk)];
   } catch {
-    return [];
+    return seed;
   }
 }
 
@@ -115,12 +118,15 @@ export async function searchSkus(li: LineItem): Promise<{ skus: Sku[]; source: S
         return { skus, source: "channel3" };
       } catch (err) {
         error = err instanceof Error ? err.message : String(err);
+        if (/402|403|Payment Required|credit/i.test(error)) break;
       }
     }
     const cached = lastGood.get(li.query);
-    if (cached) return { skus: cached, source: "channel3", error: `${error}; reused the last live Channel3 results` };
+    if (cached) return { skus: cached, source: "channel3", error: `${error}; reused live Channel3 results` };
     return { skus: fixtureSearch(li), source: "fixture", error };
   }
+  const cached = lastGood.get(li.query);
+  if (cached) return { skus: cached, source: "channel3" };
   return { skus: fixtureSearch(li), source: "fixture" };
 }
 
