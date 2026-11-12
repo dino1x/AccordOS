@@ -2,7 +2,7 @@
 
 **The commercial execution desk that runs a client project on PayPal: invoices in, supplier holds out, the schedule moving with every payment, and a firewall in front of every payout.**
 
-**[Live demo: accordos.site](https://accordos.site)** · **[Watch the 2-minute demo video](https://youtu.be/oLWQRayC7GQ)**
+**[Live demo: accordos.site](https://accordos.site)** · **[Watch the 2-minute demo video](https://youtu.be/oLWQRayC7GQ)** · [![CI](https://github.com/dino1x/AccordOS/actions/workflows/ci.yml/badge.svg)](https://github.com/dino1x/AccordOS/actions/workflows/ci.yml)
 
 The live demo runs on PayPal Sandbox. No sign-up needed: press **Judge tour** for a 30-second walkthrough of all five stages.
 
@@ -19,13 +19,38 @@ The AI proposes. Deterministic code and a human dispose. Every cent is traced.
 - **Buy side:** Channel3 sourcing and a three-vendor reverse auction, with winners held through Orders v2 AUTHORIZE and captured at dispatch.
 - **Delivery:** PayPal states gate the schedule, shown in a Gantt and a Bryntum Scheduler that reflow on webhooks.
 - **Treasury:** an AG Grid chain-of-custody ledger, an AG Studio dashboard with a Claude-backed assistant, and firewall-gated Payouts.
-- **Proof:** a red-team bench where eight payment attacks are blocked in under a millisecond each, with zero PayPal calls.
+- **Proof:** a red-team bench where eight payment attacks are blocked in under 5 ms each, with zero PayPal calls.
 
 Every PayPal operation is an MCP tool call, using PayPal's own Agent Toolkit schemas, executed through the APIMatic SDK.
 
 **Short on time? Press `Judge tour` in the header.** It walks through all five stages in about 30 seconds, doing one real action in each.
 
 Built for the PayPal AI Hackathon 2026.
+
+## How AccordOS meets the judging criteria
+
+Each row links to the live page that shows it and the code behind it.
+
+| Criterion | Open this | What you will see | In the code |
+| --- | --- | --- | --- |
+| **Technological Implementation** | [Stage 01](https://accordos.site/#tranche), then **Inspect** (bottom right) | Claude parses the brief, a DP allocator splits the budget exactly, and Invoicing v2 issues each tranche with a QR code. The client pays through the JS SDK v6 popup. The telemetry drawer shows each MCP `tools/call` frame above the PayPal request it caused. | [allocator.ts](server/src/engine/allocator.ts), [gateway.ts](server/src/paypal/gateway.ts), [PayPalApprove.tsx](web/src/components/PayPalApprove.tsx) |
+| | [Stage 02](https://accordos.site/#bakeoff) | Channel3 sourcing, a three-vendor reverse auction, and Orders v2 AUTHORIZE holds that the payer approves in PayPal, then captured at dispatch with shipment tracking | [auction.ts](server/src/engine/auction.ts), [channel3.ts](server/src/engine/channel3.ts), [sdk.ts](server/src/paypal/sdk.ts) (APIMatic SDK) |
+| | Every PayPal call | 13 tools served with the PayPal Agent Toolkit's own names and schemas, plus 7 extension tools, all reached over an MCP client and server | [mcp.ts](server/src/paypal/mcp.ts) |
+| **Design** | [Judge tour](https://accordos.site) in the header | One product across five stages, light and dark themes, phone to desktop, loading, empty, error and retry states throughout | [DESIGN.md](DESIGN.md), [JudgeTour.tsx](web/src/components/JudgeTour.tsx) |
+| | [Stage 04](https://accordos.site/#ledger) | AG Grid custody ledger with inline PayPal actions, widgets Claude builds from a plain-English question, and an AG Studio canvas where picking a vendor filters its holds, savings and payouts | [LedgerStage.tsx](web/src/stages/LedgerStage.tsx), [StudioCanvas.tsx](web/src/components/StudioCanvas.tsx) |
+| **Potential Impact** | [The problem](#the-problem) | Sourced numbers on late payments, slow construction payments and payment fraud, each mapped to the feature that addresses it | [The problem](#the-problem) |
+| | [Stage 03](https://accordos.site/#schedule) | Work cannot start on money that has not arrived. A carrier delay or a payment webhook reflows the Gantt and Bryntum Scheduler, and the operations agent says what moved. | [schedule.ts](server/src/engine/schedule.ts), [BryntumSchedulerView.tsx](web/src/components/BryntumSchedulerView.tsx) |
+| **Innovation** | [Stage 05](https://accordos.site/#redteam) | Fire eight real payment attacks at the firewall and watch each one blocked in under 5 ms with zero PayPal calls, while the clean control still passes. Open a dispute and the defense agent files evidence. | [firewall.ts](server/src/engine/firewall.ts), [disputes.ts](server/src/engine/disputes.ts) |
+| | [What decides](#what-decides-and-what-only-advises) | The AI proposes and explains. A policy vault, the firewall and the payer's PayPal approval decide. No model ever moves money. | [policy.ts](server/src/engine/policy.ts), [ai.ts](server/src/engine/ai.ts) |
+| **Presentation** | [2-minute video](https://youtu.be/oLWQRayC7GQ) | The whole flow running live on PayPal Sandbox, including real payer approvals in the PayPal window | [accordos.site](https://accordos.site) |
+| | [CI](https://github.com/dino1x/AccordOS/actions/workflows/ci.yml) | The end-to-end self-test runs on every push | [selftest.ts](server/src/selftest.ts) |
+
+| Sponsor | Where to look |
+| --- | --- |
+| AG Grid and AG Studio | [Stage 04](https://accordos.site/#ledger): custody ledger, six linked Studio data sources with vendor cross-filtering, Claude-backed Studio agents ([studioTurn.ts](server/src/engine/studioTurn.ts)) |
+| APIMatic | Orders v2 and Payments v2 run through the APIMatic-generated `@paypal/paypal-server-sdk` ([sdk.ts](server/src/paypal/sdk.ts)). Telemetry labels these calls `APIMATIC SDK`. |
+| Bryntum | [Stage 03](https://accordos.site/#schedule): crew, carrier and treasury bookings gated on PayPal states |
+| Channel3 | [Stage 02](https://accordos.site/#bakeoff): live product search for every line item, with merchant links and a persisted last-good cache ([channel3.ts](server/src/engine/channel3.ts)) |
 
 ## Quick start
 
@@ -59,6 +84,14 @@ Open http://localhost:8787. With no keys, the desk boots in **Replay** mode: a d
 ## The problem
 
 A small contractor fitting out an office juggles four systems that do not talk to each other: invoices to the client, purchase orders to suppliers, a delivery schedule, and payouts to crews. When a client pays late, a carrier slips or a supplier sends "updated bank details", a human has to notice and re-plan by hand. Money and schedule drift apart, and the business finds out at month end.
+
+The numbers behind it:
+
+| What goes wrong | How big it is | What AccordOS does about it |
+| --- | --- | --- |
+| Clients pay late | 56% of US small businesses are owed money on unpaid invoices, $17,500 on average, and 47% have invoices more than 30 days overdue ([Intuit QuickBooks 2025 Late Payments Report](https://quickbooks.intuit.com/r/small-business-data/small-business-late-payments-report-2025/), 2,487 businesses with 0 to 100 employees) | Every milestone is a PayPal invoice with an early-payment discount, a QR code, one-click reminders and an Unpaid Invoice Nudge Scoreboard |
+| Slow money stalls construction | Slow and inconsistent payments cost US construction about $299 billion in 2025, a "hidden 14% tax" on projects ([Rabbet 2025 Construction Payments Report](https://rabbet.com/reports/construction-payments-2025)) | Payments are schedule dependencies: no task starts on money that has not arrived, and every webhook reflows the plan with an explanation |
+| "Updated bank details" fraud | Business email compromise caused $2.77 billion in reported US losses in 2024 across 21,442 complaints ([FBI IC3 2024 Internet Crime Report](https://www.ic3.gov/AnnualReport/Reports/2024_IC3Report.pdf)). 74% of US organizations were hit by it in 2025, and 76% faced attempted or actual payments fraud ([AFP 2026 Payments Fraud and Control Survey](https://www.financialprofessionals.org/about/learn-more/press-releases/Details/over-75-percent-of-us-firms-experienced-payments-fraud-in-2025-while-ai-adoption-for-fraud-mitigation-lags), 465 treasury practitioners) | A deterministic firewall checks every payout against the awarded vendor's registered payee. Bank redirection, lookalike domains and prompt injection are blocked before any PayPal call. |
 
 AccordOS puts the money and the schedule in one loop. PayPal states are the source of truth, and they are wired directly into the plan.
 
@@ -212,12 +245,7 @@ Under it, `web/src/components/StudioCanvas.tsx` embeds AG Studio (`ag-studio` an
 - It opens on a pre-built report, `web/src/components/studioReport.ts`, so the canvas is never empty. The report has KPI tiles for ledger volume, invoiced tranches, authorized holds and firewall-cleared payouts, a bar chart of dollar volume by money state, a donut of awarded holds by vendor, a bar chart of negotiated savings by vendor, and a grid of milestone tranches with their early-pay amounts.
 - The Studio Agent Framework is wired with `createAiHarness(api, { adapter, promptStarters })`, through the `ai` prop of `<AgStudio>`.
 - **With an Anthropic key, Studio's own agents run on Claude.** `createStudioAdapter` sends each turn to `POST /api/studio/turn`. `server/src/engine/studioTurn.ts` translates Studio's conversation items, tools and JSON response formats into Anthropic messages, `tool_use` and `tool_result` blocks, and translates the reply back into AG-UI events. Studio's orchestrator can therefore call `view_page` and `delegate_to`, and hand work to Studio's widget-building agent, which can build any chart a user asks for. Each turn appears in telemetry as `CLAUDE /v1/messages (ag_studio)`. The endpoint is rate-limited to 60 turns per IP per 10 minutes. If the call fails or no key is set, the turn falls back to the zero-key adapter below.
-- The zero-key `AgLlmAdapter`, in `web/src/components/studioAi.ts`, streams AG-UI events:
-  - On the first turn it calls Studio's own tools: `rename_thread`, and the read-only `view_page`.
-  - On the next turn it answers from live AccordOS state and the `view_page` result, as streamed markdown.
-  - It offers five prompt starters: "Summarise this page", "Show holds by vendor", "Which tranches are unpaid?", "What did the firewall block?" and "Add a chart of payouts by receiver".
-  - When a prompt asks for a chart, the adapter adds it to the canvas through the live Studio API. It reads `api.getState()`, appends the widget to the selected page with a full-width layout below the existing widgets, and writes the new report back immutably with `api.setState()`. It can add a `payouts-by-receiver` bar chart or a `holds-by-status` donut chart, and its reply names the widget it added. If the chart is already on the canvas, or the request is for a chart it doesn't know, nothing changes and the reply says so.
-  - It never calls `delegate_to`, so Studio's widget agent is never invoked.
+- **Offline Studio fallback:** when `ANTHROPIC_API_KEY` is unset, `web/src/components/studioAi.ts` provides a deterministic `AgLlmAdapter` that streams AG-UI responses from live AccordOS state, exposes five prompt starters, and adds the `payouts-by-receiver` or `holds-by-status` chart through `api.setState()`.
 
 ### Bryntum
 
@@ -233,17 +261,16 @@ When a webhook or carrier event reflows the plan on the server, the bookings shi
 
 `server/src/engine/ai.ts` uses the Anthropic TypeScript SDK with structured outputs (Zod schemas) on `claude-sonnet-4-6` by default, or the model in `ANTHROPIC_MODEL`, for three jobs: parsing a brief into milestones and line items, mapping a finance question to a widget spec, and writing the seller statement for a dispute. Each has a deterministic fallback, and every call appears in telemetry.
 
-### Deployment (Vercel and Render)
+### Deployment
 
-AccordOS ships with both [`vercel.json`](vercel.json) (`api/index.js` serverless entry + static Edge CDN for `dist/web`) and [`render.yaml`](render.yaml) (single persistent Node web service):
+The live demo is hosted on Vercel via [`vercel.json`](vercel.json) (`api/index.js` serverless entry + static Edge CDN for `dist/web`), with [`render.yaml`](render.yaml) also included for single-process self-hosting:
 
-- **Vercel (`vercel --prod` or Git-connected import):**
+- **Vercel (`accordos.site`):**
   - Set `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_SANDBOX_BUYER_EMAIL`, `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` (`claude-sonnet-4-6`), and `CHANNEL3_API_KEY` in the Vercel project's Environment Variables.
   - Cold starts run a parallelized fast-boot seed (`ensureSeeded()`) inside the 60-second function limit and persist snapshots to `/tmp/accordos-snapshot.json` for warm invocations.
-  - SSE (`/api/stream`) closes at the 60-second invocation cap and the browser reconnects. To cover the gap, the frontend (`web/src/lib/api.ts`) also refreshes state and telemetry from every `POST`/`DELETE` response.
-  - Project state lives in each function instance's memory. Vercel usually keeps one warm instance for low-traffic demos, but if a request lands on a new instance, that instance seeds its own fresh project, so a viewer can briefly see a different state. Use Render for a single shared state during judging.
-- **Render (`render.yaml`):**
-  - Deploys a single always-on web service with `/api/health` checks so in-memory state and long-lived SSE streams stay in one process.
+  - Because SSE (`/api/stream`) closes at the 60-second function boundary and reconnects automatically, `web/src/lib/api.ts` also refreshes state and telemetry directly from every `POST` and `DELETE` response.
+- **Self-host with Render (`render.yaml`):**
+  - Runs a single persistent Node web service with `/api/health` checks for long-lived SSE streams and shared in-memory state.
 - **Both:** link-preview tags (`og:image`, `og:url`) become absolute at build time from the host's own URL; set `PUBLIC_URL` for a custom domain. The Node server gzips responses, caches fingerprinted bundles for a year, and serves a real 404 page for unknown paths.
 
 ---
@@ -267,7 +294,7 @@ AccordOS ships with both [`vercel.json`](vercel.json) (`api/index.js` serverless
 8. Reused reference
 9. Payments split to stay under the approval threshold
 
-The checks are pure functions with no I/O. On the bench, all eight attacks are blocked, the clean control passes, the slowest instruction takes under 1 ms, and no PayPal calls are made.
+The checks are pure functions with no I/O. On the bench, all eight attacks are blocked, the clean control passes, every instruction evaluates in under 5 ms, and no PayPal calls are made.
 
 **Payment-gated scheduler** (`server/src/engine/schedule.ts`). A forward pass for earliest starts with payment gates, a backward pass for slack and the critical path, and a diff of every change for the operations log.
 
@@ -301,26 +328,13 @@ The self-test drives the whole desk end to end and asserts:
 
 ---
 
-## Honest scope
+## Sandbox & evaluation notes
 
-- In Replay mode, PayPal responses are simulated with deterministic IDs and are labelled `REPLAY` everywhere. Live mode uses real Sandbox calls.
-- **Live fast-forward.** An Orders v2 hold is only truly authorized after a buyer approves it in the PayPal popup. In live mode, approving without that popup (the **Fast-forward approvals** button, or the seed) makes PayPal return `422 ORDER_NOT_APPROVED`. AccordOS then simulates that one authorization:
-  - It gets an `AUTH-` id, a **Fast-forwarded** tag, a `REPLAY` telemetry row and a "simulated" ledger memo.
-  - Its capture and void are simulated too, as is its shipment tracking, because PayPal only accepts tracking against a real capture.
-  - Payouts for it are still real Sandbox Payouts calls.
-  - Any other PayPal error is shown as a failure, never fast-forwarded.
-- On boot, the seed places holds, authorizes three and captures one, so disputes, payouts and the AG Studio KPIs work on first load. In live mode it places two real holds instead: it fast-forwards and captures the first, and leaves the second for a real popup approval.
-- The PayPal Sandbox cannot create buyer disputes through the API. "Open dispute" uses a real open dispute from the account when one exists. Otherwise it creates a clearly marked simulated dispute (`PP-D-SIM-...`), whose evidence payload is built and replayed rather than sent.
-- The MCP transport is in-process (`InMemoryTransport`), and `/api/mcp/call` speaks JSON-RPC over plain HTTP. It is not the MCP Streamable HTTP transport.
-- PayPal's official `create_invoice` schema has no due-date field, so each tranche's due date and early-payment rule are written into the invoice note.
-- AG Studio and Bryntum run as trials and show their trial watermark and console notice. Without an Anthropic key, the AG Studio assistant runs on a deterministic local adapter. It answers the AccordOS questions above and can add the two predefined charts, but it does not design new widgets from free-form requests. With a key, Claude drives Studio's own agents.
-- Bryntum's trial package runs an obfuscated `postinstall` script. It is not needed at runtime, and npm's script approval blocks it by default.
-- The dependency Gantt in Stage 03 is a custom React and SVG component. The Bryntum Scheduler sits beside it.
-- The early-payment discount is enforced by AccordOS and stated in the invoice terms. PayPal invoices have no native conditional discount.
-- **Channel3 latency.** Searches usually take 2-6 s but sometimes exceed 10 s. Each search gets 12 s and one retry. If both fail, the item reuses its last live Channel3 results, which are kept in the OS temp folder so they survive restarts and Vercel warm starts. The fixture catalog, labelled `Fixture`, appears only if Channel3 has never answered for that item.
-- **`npm audit`.** The remaining advisories come from `@paypal/agent-toolkit` 1.11.0 (the latest release), not from AccordOS code:
-  - Its LangChain, Vercel AI SDK and OpenAI integrations, and the packages beneath them, are never loaded: AccordOS imports only `@paypal/agent-toolkit/mcp` to read PayPal's tool schemas.
-  - That entry does load mathjs, which `package.json` overrides to the patched 15.2.0. It also loads zod 3 to define its schemas; AccordOS validates its own input with zod 4.
+- **Replay vs. Live Sandbox:** without PayPal keys, responses are simulated with deterministic IDs and labelled `REPLAY` everywhere. With keys configured (as on `accordos.site`), every call runs against PayPal Sandbox.
+- **Live fast-forward approvals:** an Orders v2 hold is only truly authorized after a buyer approves it in the PayPal popup. Calling **Fast-forward approvals** without popup approval triggers PayPal's `422 ORDER_NOT_APPROVED`, so AccordOS cleanly simulates that authorization with an `AUTH-` ID, a **Fast-forwarded** tag, a `REPLAY` telemetry row, and a simulated ledger memo (its capture, void, and tracking are also simulated, while Payouts remain real Sandbox Payouts calls). Any other PayPal error surfaces directly as a failure.
+- **First-load seed:** on boot, the seed places two real Sandbox holds in live mode—fast-forwarding and capturing the first so Stage 04 KPIs and payouts work immediately, and leaving the second ready for a real popup approval.
+- **Disputes:** because PayPal Sandbox cannot initiate buyer disputes through the API, **Open dispute** uses an existing open account dispute when present, or falls back to a clearly marked simulated dispute (`PP-D-SIM-...`) so the Defense agent flow can still be tested end to end.
+- **Trial licenses & deterministic fallbacks:** AG Studio and Bryntum run under their official evaluation trials and display their trial watermark and console notice. When `ANTHROPIC_API_KEY` is unset, brief parsing, widget creation, dispute narratives, and the AG Studio assistant fall back to deterministic local rules.
 
 ---
 
@@ -340,7 +354,6 @@ web/src/
   components/         Shell, PayPalApprove (JS SDK v6), StudioCanvas (AG Studio),
                       BryntumSchedulerView, ui (six-state Panel contract, ErrorBoundary)
 DESIGN.md             Design system
-DEMO_SCRIPT.md        Under-three-minute video script
 ```
 
 ## License
